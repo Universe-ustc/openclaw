@@ -224,6 +224,71 @@ describe("tool display details", () => {
     expect(detail).toBe("print lines 1-80 from extensions/discord/src/draft-stream.ts");
   });
 
+  it("summarizes normal rg and grep searches", () => {
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: 'rg "Pipeline" src' },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe('search "Pipeline" in src');
+
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: "grep -n TODO ." },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe('search "TODO" in .');
+  });
+
+  it("does not nest already-summarized or unsafe search patterns", () => {
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: `rg 'search "Pipeline" in src' .` },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe("search text in .");
+
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: 'rg "Bash failed: search foo" src' },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe("search text in src");
+
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: 'rg "foo`bar" src' },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe("search text in src");
+
+    const longPattern = `a${"x".repeat(120)}`;
+    expect(
+      formatToolDetail(
+        resolveToolDisplay({
+          name: "exec",
+          args: { command: `rg "${longPattern}" src` },
+          detailMode: "explain",
+        }),
+      ),
+    ).toBe("search text in src");
+  });
+
   it("moves cd path to context suffix and appends raw command", () => {
     const detail = formatToolDetail(
       resolveToolDisplay({

@@ -22,6 +22,22 @@ import {
   unwrapShellWrapper,
 } from "./tool-display-exec-shell.js";
 
+function isUnsafeSearchPattern(pattern: string): boolean {
+  const trimmed = pattern.trim();
+  if (!trimmed) {
+    return true;
+  }
+  if (
+    trimmed.startsWith("search ") ||
+    trimmed.startsWith("Bash failed:") ||
+    trimmed.includes("`") ||
+    /[\r\n]/.test(trimmed)
+  ) {
+    return true;
+  }
+  return trimmed.length > 120;
+}
+
 function summarizeKnownExec(words: string[]): string {
   if (words.length === 0) {
     return "run command";
@@ -118,6 +134,9 @@ function summarizeKnownExec(words: string[]): string {
     const pattern = optionValue(words, ["-e", "--regexp"]) ?? positional[0];
     const target = positional.length > 1 ? positional.at(-1) : undefined;
     if (pattern) {
+      if (isUnsafeSearchPattern(pattern)) {
+        return target ? `search text in ${target}` : "search text";
+      }
       return target ? `search "${pattern}" in ${target}` : `search "${pattern}"`;
     }
     return "search text";
